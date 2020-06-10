@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Button } from "react-bootstrap";
+import { Button, Modal } from "react-bootstrap";
 import "./App.css";
 import SimpleForm from "./components/SimpleForm";
 
@@ -13,22 +13,53 @@ function MainComponent() {
 
   useEffect(() => {
     tableau.extensions.initializeAsync().then(() => {
-      const selectedSheet = tableau.extensions.settings.get("sheet");
-      console.log("The saved sheet setting is:", selectedSheet);
-      setSelectedSheet(selectedSheet);
+      const selectedSheet1 = tableau.extensions.settings.get("sheet");
+      console.log("The saved sheet setting is:", selectedSheet1);
+      setSelectedSheet(selectedSheet1);
 
-      const sheetNames = tableau.extensions.dashboardContent.dashboard.worksheets.map(
+      const sheetNames1 = tableau.extensions.dashboardContent.dashboard.worksheets.map(
         (worksheet) => worksheet.name
       );
-      console.log("Sheet names list taken from Tableau:", sheetNames);
-      setSheetNames(sheetNames);
-      console.log("Sheet names a little later:", sheetNames);
+      console.log("Sheet names list taken from Tableau:", sheetNames1);
+      setSheetNames(sheetNames1);
+      console.log("Sheet names set with a hook:", sheetNames);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const loadColumns = (sheet) => {
+    console.log("4.About to load columns for ", sheet);
+    sheet.getUnderlyingDataAsync().then((marks) => {
+      //const worksheetData = marks.data[0];
+      //const headers = worksheetData.columns.map((column) => column.fieldName);
+      console.log("5.The marks for this sheet are:", marks);
+    });
+  };
+
+  const loadSheet = (sheet) => {
+    console.log("1.About to load columns of the sheet:", sheet);
+    console.log("2.About to load columns of the sheet:", selectedSheet);
+
+    const sheetName = sheet || selectedSheet;
+    const theSheet = tableau.extensions.dashboardContent.dashboard.worksheets.find(
+      (worksheet) => worksheet.name === sheetName
+    );
+    console.log("3.The sheet object from Tableau is", theSheet);
+
+    loadColumns(theSheet);
+  };
+
   const handleSubmit = (event) => {
     console.log("This is the returned selected sheet:", sheetRef.current.value);
+    setSelectedSheet(sheetRef.current.value);
+    console.log("This is the saved sheet:", selectedSheet);
+    window.newOutput = (
+      <div>
+        <h3>The sheet you chose is:</h3>
+        <strong> {sheetRef.current.value}</strong>
+      </div>
+    );
+    loadSheet(sheetRef.current.value);
 
     event.preventDefault();
   };
@@ -38,26 +69,29 @@ function MainComponent() {
 
     window.newOutput = (
       <div>
-        <form onSubmit={handleSubmit}>
-          <h4>Please select a sheet on this dashboard:</h4>
-          <br />
-          <select
-            className="form-control"
-            ref={sheetRef}
-            name={"SheetSelector"}
-          >
-            {sheetNames.map((sheetName) => (
-              <option key={sheetName.toString()} value={sheetName}>
-                {sheetName}
-              </option>
-            ))}
-          </select>
-          <br />
-          <Button type="submit">Submit</Button>
-        </form>
+        <Modal show>
+          <form onSubmit={handleSubmit}>
+            <h4>Please select a sheet on this dashboard:</h4>
+            <br />
+            <select
+              className="form-control"
+              ref={sheetRef}
+              name={"SheetSelector"}
+            >
+              {sheetNames.map((sheetName) => (
+                <option key={sheetName.toString()} value={sheetName}>
+                  {sheetName}
+                </option>
+              ))}
+            </select>
+            <br />
+            <Button type="submit">Submit</Button>
+          </form>
+        </Modal>
       </div>
     );
-    setSelectedSheet(sheetRef.current.value);
+    setSelectedSheet("NotEmpty");
+    console.log("Putting this value for selectedSheet:", selectedSheet);
   };
 
   let output = <p></p>;
